@@ -1,0 +1,48 @@
+# Ignore folders
+__pycache__/
+.ruff_cache/
+.vscode/
+data/
+
+# Virtual environment folders
+venv/
+.env/
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Test coverage reports
+htmlcov/
+.coverage
+*.cover
+.cache
+.nox/
+
+# Distribution/build files
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+*.log
+*.out
+*.err
+
+# Ignore OS-specific files
+.DS_Store
+.AppleDouble
+._*
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Other
+**/readme.todo
