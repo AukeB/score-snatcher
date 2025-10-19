@@ -6,7 +6,8 @@ from src.video_to_pdf import VideoToPDF
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def main():
+
+def main() -> None:
     """Main execution function."""
 
     url = "https://www.youtube.com/watch?v=MciqL-IJY5I"

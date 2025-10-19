@@ -1,6 +1,7 @@
 """ """
 
 import re
+import logging
 import unicodedata
 
 from pathlib import Path
@@ -11,6 +12,9 @@ from src.constants import (
     OUTPUT_DIR_PDFS_REL_PATH,
 )
 from src.youtube_downloader import YoutubeDownloader
+
+
+logger = logging.getLogger(__name__)
 
 
 class VideoToPDF:
@@ -40,22 +44,15 @@ class VideoToPDF:
             video_name=self.youtube_downloader.video_title
         )
 
-    def _create_data_folders(self) -> None:
-        """Create all data folders if they don't exist."""
-
-        for dir in self.directories:
-            dir.mkdir(parents=True, exist_ok=True)
-
-        print(f"✅ Data folders created at: {self.repo_root / 'data'}")
-
-    def _format_video_name(self, video_name: str, max_length: int = 100) -> str:
+    @staticmethod
+    def _format_video_name(video_name: str, max_length: int = 100) -> str:
         """
         Format a YouTube video title to be safe for file systems.
 
         - Converts to lowercase
         - Normalizes unicode characters
         - Removes or replaces unsafe filesystem characters
-        - Replaces spaces and consecutive spaces with single underscore
+        - Replacelogger = logging.getLogger(__name__)s spaces and consecutive spaces with single underscore
         - Truncates if longer than max_length
         - Strips leading and trailing underscores or dots
         """
@@ -72,7 +69,15 @@ class VideoToPDF:
 
         return video_name
 
-    def execute(self):
+    def _create_data_folders(self) -> None:
+        """Create all data folders if they don't exist."""
+
+        for dir in self.directories:
+            dir.mkdir(parents=True, exist_ok=True)
+
+        logger.info(f"✅ Data folders created at: {self.repo_root / 'data'}")
+
+    def execute(self) -> None:
         """Run the full workflow."""
         self.youtube_downloader.download_videos(
             output_file_name=self.formatted_video_name
