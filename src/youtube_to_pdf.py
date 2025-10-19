@@ -12,12 +12,13 @@ from src.constants import (
     OUTPUT_DIR_PDFS_REL_PATH,
 )
 from src.youtube_downloader import YoutubeDownloader
+from src.video_to_screenshots import VideoToScreenshots
 
 
 logger = logging.getLogger(__name__)
 
 
-class VideoToPDF:
+class YoutubeToPDF:
     """Central class to execute the entire project workflow."""
 
     def __init__(self, url: str) -> None:
@@ -79,6 +80,22 @@ class VideoToPDF:
 
     def execute(self) -> None:
         """Run the full workflow."""
+
+        # Step 1. Download the youtube video.
         self.youtube_downloader.download_videos(
             output_file_name=self.formatted_video_name
         )
+
+        # Step 2. Extract screenshots from video every x amount of seconds.
+        video_to_screenshots = VideoToScreenshots(
+            root_dir_path=self.screenshots_dir,
+            output_dir_name=self.formatted_video_name,
+        )
+
+        video_to_screenshots.extract_screenshots_from_video()
+
+        # Step 3. Remove duplicate screenshots.
+        # to implement
+
+        # Step 4. Merge screenshots in PDF document.
+        # to implement.
