@@ -1,0 +1,16 @@
+[project]
+name = "score-snatcher"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "logging>=0.4.9.6",
+    "pydantic>=2.12.3",
+    "yt-dlp>=2025.10.14",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.1",
+]
