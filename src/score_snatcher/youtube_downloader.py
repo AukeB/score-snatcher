@@ -1,8 +1,11 @@
 """Module for downloading videos from YouTube using yt-dlp."""
 
+import logging
+
+from pytube import YouTube
 from yt_dlp import YoutubeDL
 from pathlib import Path
-import logging
+
 
 from src.score_snatcher.constants import YT_DLP_DOWNLOAD_FORMAT
 
@@ -95,12 +98,49 @@ class YoutubeDownloader:
         except Exception as e:
             logger.error(f"❌ Download failed for {self.url}: {e}")
 
-    def download_videos(
-        self,
-        output_file_name: str,
-    ) -> None:
+    def _download_using_pytube(self, output_file_name: str) -> None:
         """
-        Public method to download a YouTube video if it hasn’t been downloaded yet.
+        Download the YouTube video using pytube as an alternative to yt-dlp.
+
+        This method may succeed when yt-dlp fails due to rate-limits or request blocking.
+        Pytube fetches streams directly from YouTube without relying on external executables.
+
+        Args:
+            output_file_name (str): The base name of the output file (without extension).
+
+        Logs success or failure of the download operation.
+        """
+        try:
+            yt = YouTube(self.url)
+            stream = (
+                yt.streams.filter(progressive=True, file_extension="mp4")
+                .order_by("resolution")
+                .desc()
+                .first()
+            )
+
+            if not stream:
+                raise RuntimeError("No valid MP4 stream found for download.")
+
+            output_path = stream.download(
+                output_path=str(self.output_dir_path),
+                filename=f"{output_file_name}.mp4",
+            )
+
+            logger.info(
+                f'✅ Download (pytube) finished for video: "{self.video_title}" ({self.url})'
+            )
+            logger.info(f"✅ Video saved to: {output_path}")
+
+        except Exception as e:
+            logger.error(f"❌ Pytube download failed for {self.url}: {e}")
+
+    def download_videos(self, output_file_name: str) -> None:
+        """
+        Public method to download a YouTube video if it hasn't been downloaded yet.
+
+        Attempts yt-dlp first. If yt-dlp fails due to known issues, pytube
+        can be used as a fallback method.
 
         Args:
             output_file_name (str): The base name of the output file (without extension).
@@ -111,7 +151,9 @@ class YoutubeDownloader:
             output_file_name=output_file_name
         ):
             logger.info(
-                f'✅ Starting download for video: "{self.video_title}" ({self.url})'  # type: ignore
+                f'✅ Starting download for video: "{self.video_title}" ({self.url})'
             )
 
             self._download_using_yt_dlp(output_file_name=output_file_name)
+            logger.warning("⚠️ yt-dlp failed — falling back to pytube...")
+            self._download_using_pytube(output_file_name=output_file_name)
