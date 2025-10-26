@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-CONFIG_PATH = Path("src/my_project/configs/config.yaml")
-
+CONFIG_PATH = Path("src/score_snatcher/configs/config.yaml")
+SONG_CONFIG_PATH = Path("src/score_snatcher/configs/song_config_test.csv")
 
 OUTPUT_DIR_VIDEOS_REL_PATH: str = "data/videos"
 OUTPUT_DIR_SCREENSHOTS_REL_PATH: str = "data/screenshots"

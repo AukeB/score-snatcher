@@ -6,13 +6,13 @@ import unicodedata
 
 from pathlib import Path
 
-from src.constants import (
+from src.score_snatcher.constants import (
     OUTPUT_DIR_VIDEOS_REL_PATH,
     OUTPUT_DIR_SCREENSHOTS_REL_PATH,
     OUTPUT_DIR_PDFS_REL_PATH,
 )
-from src.youtube_downloader import YoutubeDownloader
-from src.video_to_screenshots import VideoToScreenshots
+from src.score_snatcher.youtube_downloader import YoutubeDownloader
+from src.score_snatcher.video_to_screenshots import VideoToScreenshots
 
 
 logger = logging.getLogger(__name__)
