@@ -42,7 +42,7 @@ class YoutubeToPDF:
         )
 
         self.formatted_video_name = self._format_video_name(
-            video_name=self.youtube_downloader.video_title
+            video_name=self.youtube_downloader.video_title  # type: ignore
         )
 
     @staticmethod

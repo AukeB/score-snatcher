@@ -17,7 +17,7 @@ def main() -> None:
     url = "https://www.youtube.com/watch?v=MciqL-IJY5I"
 
     for song in song_config:
-        url = song.url
+        # url = song.url
     
         video_to_pdf = YoutubeToPDF(url=url)
         video_to_pdf.execute()

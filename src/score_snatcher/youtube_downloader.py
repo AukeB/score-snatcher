@@ -14,7 +14,13 @@ class YoutubeDownloader:
     """Class containing functions for downloading videos from YouTube."""
 
     def __init__(self, output_dir_path: Path, url: str) -> None:
-        """Initialize the YoutubeDownloader with a URL and output settings."""
+        """
+        Initialize the YoutubeDownloader with a URL and output directory.
+
+        Args:
+            output_dir_path (Path): Path to the directory where the video will be saved.
+            url (str): The URL of the YouTube video to download.
+        """
         self.output_dir_path = output_dir_path
         self.url = url
         self.output_file_extension = "mp4"
@@ -22,7 +28,14 @@ class YoutubeDownloader:
         self.video_title = self._get_video_title()
 
     def _get_video_title(self) -> str:
-        """Return the title of a YouTube video without downloading it."""
+        """
+        Retrieve the title of a YouTube video without downloading it.
+
+        Uses yt-dlp to extract video metadata.
+
+        Returns:
+            str: The title of the video.
+        """
         ydl_opts = {
             "quiet": True,
             "skip_download": True,
@@ -33,7 +46,15 @@ class YoutubeDownloader:
             return info["title"]  # type: ignore
 
     def _check_if_video_already_downloaded(self, output_file_name: str) -> bool:
-        """Check if the video file already exists in the output directory."""
+        """
+        Check if a video file with the given name already exists in the output directory.
+
+        Args:
+            output_file_name (str): The base name of the output file (without extension).
+
+        Returns:
+            bool: True if the file already exists, False otherwise.
+        """
         output_path: Path = self.output_dir_path / f"{output_file_name}.mp4"
 
         if output_path.exists():
@@ -46,7 +67,14 @@ class YoutubeDownloader:
         self,
         output_file_name: str,
     ) -> None:
-        """Download the video from YouTube using yt-dlp."""
+        """
+        Download the YouTube video using yt-dlp.
+
+        Args:
+            output_file_name (str): The base name of the output file (without extension).
+
+        Logs success or failure of the download operation.
+        """
         ydl_opts = {
             "outtmpl": str(self.output_dir_path / f"{output_file_name}.%(ext)s"),
             "format": YT_DLP_DOWNLOAD_FORMAT,
@@ -59,7 +87,7 @@ class YoutubeDownloader:
                 youtube_dl.download([self.url])
 
             logger.info(
-                f'✅ Download finished for video: "{self.video_title}" ({self.url})'
+                f'✅ Download finished for video: "{self.video_title}" ({self.url})'  # type: ignore
             )
             logger.info(
                 f"✅ Video saved to: {self.output_dir_path / (output_file_name + '.mp4')}"
@@ -71,12 +99,19 @@ class YoutubeDownloader:
         self,
         output_file_name: str,
     ) -> None:
-        """Wrapper function to trigger the YouTube video download."""
+        """
+        Public method to download a YouTube video if it hasn’t been downloaded yet.
+
+        Args:
+            output_file_name (str): The base name of the output file (without extension).
+
+        Checks if the video already exists and triggers the download if needed.
+        """
         if not self._check_if_video_already_downloaded(
             output_file_name=output_file_name
         ):
             logger.info(
-                f'✅ Starting download for video: "{self.video_title}" ({self.url})'
+                f'✅ Starting download for video: "{self.video_title}" ({self.url})'  # type: ignore
             )
 
             self._download_using_yt_dlp(output_file_name=output_file_name)

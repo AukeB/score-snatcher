@@ -52,21 +52,38 @@ class ConfigManager:
 
     def __init__(
         self, config_path: Path = CONFIG_PATH, song_config_path: Path = SONG_CONFIG_PATH
-    ):
-        """ """
+    ) -> None:
+        """Initializes the ConfigManager with paths to the configuration files.
+
+        Args:
+            config_path (Path, optional): Path to the YAML configuration file.
+                Defaults to CONFIG_PATH.
+            song_config_path (Path, optional): Path to the CSV file containing song entries.
+                Defaults to SONG_CONFIG_PATH.
+        """
         self.config_path = config_path
         self.song_config_path = song_config_path
-        self.song_config: list[SongEntry] = []
 
     def load_config_file(self) -> ConfigModel:
-        """ """
+        """
+        Loads the main YAML configuration file and returns it as a ConfigModel.
+
+        Returns:
+            ConfigModel: The loaded configuration as a Pydantic model.
+        """
         with open(self.config_path) as file:
             config = yaml.safe_load(file)
 
         return ConfigModel(**config)
 
     def load_song_csv(self) -> list[SongEntry]:
-        """ """
+        """
+        Loads the song CSV file and returns a list of validated SongEntry objects.
+        Rows that fail validation are skipped, and a message is printed for each.
+
+        Returns:
+            list[SongEntry]: A list of valid song entries from the CSV file.
+        """
         with open(self.song_config_path, newline="", encoding="utf-8") as file:
             reader = csv.DictReader(file)
             entries = []
