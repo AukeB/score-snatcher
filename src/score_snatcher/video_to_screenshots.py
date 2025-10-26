@@ -1,7 +1,6 @@
 """Module for managing screenshot directories in a video processing workflow."""
 
 from pathlib import Path
-from typing import Optional
 
 
 class VideoToScreenshots:
@@ -33,8 +32,9 @@ class VideoToScreenshots:
         folder_path: Path = self.root_dir_path / self.output_dir_name
         return folder_path.exists() and not any(folder_path.iterdir())
 
-    def extract_screenshots_from_video(self) -> Optional[bool]:
+    def extract_screenshots_from_video(self) -> None:  # -> Optional[bool]:
         """ """
+        pass
 
-        if self._check_if_already_processed():
-            return False
+        # if self._check_if_already_processed():
+        #     return False

@@ -1,5 +1,10 @@
 """Module containing global constants."""
 
+from pathlib import Path
+
+CONFIG_PATH = Path("src/my_project/configs/config.yaml")
+
+
 OUTPUT_DIR_VIDEOS_REL_PATH: str = "data/videos"
 OUTPUT_DIR_SCREENSHOTS_REL_PATH: str = "data/screenshots"
 OUTPUT_DIR_PDFS_REL_PATH: str = "data/pdfs"

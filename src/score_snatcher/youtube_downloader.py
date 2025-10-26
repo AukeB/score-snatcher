@@ -4,7 +4,7 @@ from yt_dlp import YoutubeDL
 from pathlib import Path
 import logging
 
-from src.constants import YT_DLP_DOWNLOAD_FORMAT
+from score_snatcher.constants import YT_DLP_DOWNLOAD_FORMAT
 
 
 logger = logging.getLogger(__name__)

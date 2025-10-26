@@ -2,7 +2,7 @@
 
 import logging
 
-from src.youtube_to_pdf import YoutubeToPDF
+from src.score_snatcher.youtube_to_pdf import YoutubeToPDF
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
