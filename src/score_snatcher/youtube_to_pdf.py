@@ -45,33 +45,31 @@ class YoutubeToPDF:
             video_name=self.youtube_downloader.video_title  # type: ignore
         )
 
-        print(self.formatted_video_name)
-
     @staticmethod
     def _format_video_name(video_name: str, max_length: int = 100) -> str:
         """
         Format a YouTube video title to be safe for file systems.
 
+        - Normalizes unicode to ASCII
         - Converts to lowercase
-        - Normalizes unicode characters
-        - Removes or replaces unsafe filesystem characters
-        - Replacelogger = logging.getLogger(__name__)s spaces and consecutive spaces with single underscore
-        - Truncates if longer than max_length
-        - Strips leading and trailing underscores or dots
+        - Removes unsafe characters
+        - Collapses all separators (-, ., _, spaces) into a single underscore
+        - Trims leading/trailing underscores
+        - Truncates to max_length
         """
 
         video_name = unicodedata.normalize("NFKD", video_name)
         video_name = video_name.encode("ascii", "ignore").decode("ascii")
         video_name = video_name.lower()
-        video_name = re.sub(r"\s+", "_", video_name)
-        video_name = re.sub(r"[^\w.-]", "", video_name)
-        video_name = video_name.strip("_.-")
+        video_name = re.sub(r"[ \t\n._-]+", "_", video_name)
+        video_name = re.sub(r"[^\w]", "", video_name)
+        video_name = video_name.strip("_")
 
         if len(video_name) > max_length:
-            video_name = video_name[:max_length].rstrip("_.-")
+            video_name = video_name[:max_length].rstrip("_")
 
         return video_name
-    
+
     def _create_data_folders(self) -> None:
         """Create all data folders if they don't exist."""
 

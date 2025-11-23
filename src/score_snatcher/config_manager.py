@@ -2,11 +2,16 @@
 
 import csv
 import yaml
+import logging
+
 from typing import Literal
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from src.score_snatcher.constants import CONFIG_PATH, SONG_CONFIG_PATH
+
+
+logger = logging.getLogger(__name__)
 
 
 class ConfiguredBaseModel(BaseModel):
@@ -93,5 +98,5 @@ class ConfigManager:
                     entry = SongEntry(**row)  # type: ignore
                     entries.append(entry)
                 except ValidationError as e:
-                    print(f"Skipping invalid row: {row}\nError: {e}")
+                    logger.error(f"Skipping invalid row: {row}\nError: {e}")
         return entries

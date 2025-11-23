@@ -99,10 +99,8 @@ class YoutubeDownloader:
         Args:
             output_file_name (str): Name of the output file (without path).
         """
-        output_file_path = (self.output_dir_path / output_file_name).with_suffix(
-            self.config_youtube_download.output_file_extension
-        )
-        self.ydl_opts["outtmpl"] = str(output_file_path)
+        output_file_path = self.output_dir_path / output_file_name
+        self.ydl_opts["outtmpl"] = str(output_file_path) + ".%(ext)s"
 
         logger.info(f"Starting download: {self.url}")
         logger.info(f"Saving to: {output_file_path}")
