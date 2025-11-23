@@ -132,60 +132,64 @@ class YoutubeDownloader:
 
         logger.info(f"Fetching video list for channel: {channel_url}")
 
-        # # yt-dlp options for listing videos without downloading
-        # list_opts = {
-        #     "quiet": True,
-        #     "extract_flat": True,    # Important — faster, gives list of uploads
-        #     "skip_download": True,
-        #     "ignoreerrors": True,
-        #     "no_warnings": True,
-        #     "playlistend": 99999,    # Ensure we get all videos
-        # }
+        # yt-dlp options for listing videos without downloading
+        list_opts = {
+            "quiet": True,
+            "extract_flat": True,  # Important — faster, gives list of uploads
+            "skip_download": True,
+            "ignoreerrors": True,
+            "no_warnings": True,
+            "playlistend": 99999,  # Ensure we get all videos
+        }
 
-        # try:
-        #     with YoutubeDL(list_opts) as ydl: # type: ignore
-        #         info = ydl.extract_info(channel_url, download=False)
+        try:
+            with YoutubeDL(list_opts) as ydl:  # type: ignore
+                info = ydl.extract_info(channel_url, download=False)
 
-        #     if info is None:
-        #         logger.error(f"Could not fetch channel info: {channel_url}")
-        #         return
+            if info is None:
+                logger.error(f"Could not fetch channel info: {channel_url}")
+                return
 
-        #     # Info for channels or playlist-like objects is stored in "entries"
-        #     entries = info.get("entries", [])
+            # Info for channels or playlist-like objects is stored in "entries"
+            entries = info.get("entries", [])
 
-        #     if not entries:
-        #         logger.error(f"No videos found for channel: {channel_url}")
-        #         return
+            if not entries:
+                logger.error(f"No videos found for channel: {channel_url}")
+                return
 
-        #     logger.info(f"Found {len(entries)} videos on channel.")
+            logger.info(f"Found {len(entries)} videos on channel.")
 
-        #     # Iterate through each entry and download individually
-        #     for entry in entries:
-        #         video_url = entry.get("url")
+            # Iterate through each entry and download individually
+            for entry in entries:
+                video_url = entry.get("url")
 
-        #         if not video_url:
-        #             logger.warning("Encountered entry without a URL; skipping.")
-        #             continue
+                if not video_url:
+                    logger.warning("Encountered entry without a URL; skipping.")
+                    continue
 
-        #         full_video_url = (
-        #             video_url if video_url.startswith("http")
-        #             else f"https://www.youtube.com/watch?v={video_url}"
-        #         )
+                full_video_url = (
+                    video_url
+                    if video_url.startswith("http")
+                    else f"https://www.youtube.com/watch?v={video_url}"
+                )
 
-        #         video_title = entry.get("title", "UnknownTitle")
-        #         safe_title = "".join(
-        #             c for c in video_title if c.isalnum() or c in " _-.()"
-        #         ).strip()
+                video_title = entry.get("title", "UnknownTitle")
+                print(video_title)
+                safe_title = "".join(
+                    c for c in video_title if c.isalnum() or c in " _-.()"
+                ).strip()
 
-        #         logger.info(f"Downloading video: {safe_title}")
+                logger.info(f"Downloading video: {safe_title}")
 
-        #         # Use your existing method
-        #         output_name = safe_title
-        #         self.url = full_video_url     # Update instance URL
-        #         self.video_title = safe_title # Helpful for logging
-        #         self.download_video(output_name)
+                # Use your existing method
+                # output_name = safe_title
+                self.url = full_video_url  # Update instance URL
+                self.video_title = safe_title  # Helpful for logging
+                # self.download_video(output_name)
 
-        #     logger.info(f"All videos from channel '{channel_name}' downloaded successfully.")
+            logger.info(
+                f"All videos from channel '{channel_name}' downloaded successfully."
+            )
 
-        # except Exception as e:
-        #     logger.error(f"Error while downloading channel videos: {e}")
+        except Exception as e:
+            logger.error(f"Error while downloading channel videos: {e}")
