@@ -12,6 +12,7 @@ from src.score_snatcher.constants import (
     OUTPUT_DIR_PDFS_REL_PATH,
 )
 from src.score_snatcher.youtube_downloader import YoutubeDownloader
+from src.score_snatcher.video_to_screenshots import VideoToScreenshots
 
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ class YoutubeToPDF:
             video_name = video_name[:max_length].rstrip("_.-")
 
         return video_name
-
+    
     def _create_data_folders(self) -> None:
         """Create all data folders if they don't exist."""
 
@@ -88,12 +89,12 @@ class YoutubeToPDF:
         )
 
         # Step 2. Extract screenshots from video every x amount of seconds.
-        # video_to_screenshots = VideoToScreenshots(
-        #     root_dir_path=self.screenshots_dir,
-        #     output_dir_name=self.formatted_video_name,
-        # )
+        video_to_screenshots = VideoToScreenshots(
+            root_dir_path=self.screenshots_dir,
+            output_dir_name=self.formatted_video_name,
+        )
 
-        # video_to_screenshots.extract_screenshots_from_video()
+        video_to_screenshots.extract_screenshots_from_video()
 
         # Step 3. Remove duplicate screenshots.
         # to implement
