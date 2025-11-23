@@ -1,5 +1,5 @@
 youtube_downloader:
-  output_file_extension: 'mp4'
+  output_file_extension: '.mp4'
   video_quality: 'bestvideo[height<=1080]' # Downloads the best video up to 1080p.
   ignore_errors: False # If True, skips videos that cause errors instead of stopping the whole process.
   no_warnings: False # Suppresses warning messages.

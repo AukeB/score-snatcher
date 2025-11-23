@@ -9,7 +9,7 @@ dependencies = [
     "pydantic>=2.12.3",
     "pytube>=15.0.0",
     "pyyaml>=6.0.3",
-    "yt-dlp>=2025.10.14",
+    "yt-dlp==2025.11.12",
 ]
 
 [dependency-groups]

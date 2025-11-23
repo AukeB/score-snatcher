@@ -99,36 +99,16 @@ class YoutubeDownloader:
         Args:
             output_file_name (str): Name of the output file (without path).
         """
-        output_file_path = self.output_dir_path / output_file_name
-
+        output_file_path = (self.output_dir_path / output_file_name).with_suffix(
+            self.config_youtube_download.output_file_extension
+        )
         self.ydl_opts["outtmpl"] = str(output_file_path)
-
-        self.ydl_opts["format"] += "+bestaudio/best"
-        self.ydl_opts["http_headers"] = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/135.0.0.0 Safari/537.36"
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-us,en;q=0.5",
-            "Sec-Fetch-Mode": "navigate",
-        }
-        self.ydl_opts["merge_output_format"] = "mp4"
-        self.ydl_opts["js_runtimes"] = {"deno": {}}
-        self.ydl_opts["remote_components"] = set()
-        self.ydl_opts["compat_opts"] = set()
-        self.ydl_opts["forceprint"] = {}
-        self.ydl_opts["print_to_file"] = {}
 
         logger.info(f"Starting download: {self.url}")
         logger.info(f"Saving to: {output_file_path}")
 
-        print(self.ydl_opts)
-
         try:
             with YoutubeDL(self.ydl_opts) as ydl:  # type: ignore
-                ydl.extract_info(url=self.url, download=False)
                 ydl.download([self.url])
 
             logger.info(f"Download completed: {output_file_path}")
