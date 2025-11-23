@@ -1,11 +1,15 @@
-config_category_1:
-  float_param: 2.5
-  str_param: "hello"
-
-config_category_two:
-  int_param: 1
-  bool_param: true
-  list_param:
-    - "item1"
-    - "item2"
-    - "item3"
+youtube_downloader:
+  output_file_extension: 'mp4'
+  video_quality: 'bestvideo[height<=1080]' # Downloads the best video up to 1080p.
+  ignore_errors: False # If True, skips videos that cause errors instead of stopping the whole process.
+  no_warnings: False # Suppresses warning messages.
+  extract_flat: False # If False, downloads full video info instead of just URLs.
+  write_subtitles: False # If True, downlaods the subtitles as .vtt or .srt file.
+  write_thumbnail: False # If True, saves the video thumbnail image.
+  write_automatic_sub: False # If True, downloads auto-generated Youtube subtitles.
+  post_processors_key: "FFmpegVideoConvertor" # Post-process the video with FFmpeg.
+  keep_video: False # If False, any intermediate files used for merging are deleted after merging.
+  clean_info_json: True # Deletes any extra generated .info.json files.
+  retries: 3 # Number of retries if there's a network or download error.
+  fragment_retries: 3 # Number of retries when downloading videos in fragments (common for DASH streams).
+  no_playlist: True # Ensures playlists are not downloaded, even if the URL points to a playlist.

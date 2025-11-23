@@ -2,12 +2,10 @@
 
 import logging
 
-from pytube import YouTube
 from yt_dlp import YoutubeDL
 from pathlib import Path
 
-
-from src.score_snatcher.constants import YT_DLP_DOWNLOAD_FORMAT
+from src.score_snatcher.config_manager import ConfigManager
 
 
 logger = logging.getLogger(__name__)
@@ -26,134 +24,114 @@ class YoutubeDownloader:
         """
         self.output_dir_path = output_dir_path
         self.url = url
-        self.output_file_extension = "mp4"
 
-        self.video_title = self._get_video_title()
+        # Load Youtube download settings from the config file.
+        config_manager = ConfigManager()
+        config = config_manager.load_config_file()
+        self.config_youtube_download = config.youtube_downloader
 
-    def _get_video_title(self) -> str:
+        self.ydl_opts: dict = self._construct_ydl_opts_dict()
+        self.video_title = self._obtain_video_title()
+
+    def _construct_ydl_opts_dict(self) -> dict:
         """
-        Retrieve the title of a YouTube video without downloading it.
-
-        Uses yt-dlp to extract video metadata.
+        Construct the dictionary of options for yt-dlp based on the configuration.
 
         Returns:
-            str: The title of the video.
+            dict: yt-dlp options dictionary.
         """
+        cfg = self.config_youtube_download
+
         ydl_opts = {
-            "quiet": True,
-            "skip_download": True,
+            "format": cfg.video_quality,
+            "ignoreerrors": cfg.ignore_errors,
+            "no_warnings": cfg.no_warnings,
+            "extract_flat": cfg.extract_flat,
+            "writesubtitles": cfg.write_subtitles,
+            "writethumbnail": cfg.write_thumbnail,
+            "writeautomaticsub": cfg.write_automatic_sub,
+            "postprocessors": [
+                {
+                    "key": cfg.post_processors_key,
+                    "preferedformat": cfg.output_file_extension,
+                }
+            ],
+            "keepvideo": cfg.keep_video,
+            "clean_infojson": cfg.clean_info_json,
+            "retries": cfg.retries,
+            "fragment_retries": cfg.fragment_retries,
+            "noplaylist": cfg.no_playlist,
         }
 
-        with YoutubeDL(ydl_opts) as ydl:  # type: ignore
-            info: dict = ydl.extract_info(self.url, download=False)  # type: ignore
-            return info["title"]  # type: ignore
+        return ydl_opts
 
-    def _check_if_video_already_downloaded(self, output_file_name: str) -> bool:
+    def _obtain_video_title(self) -> str | None:
         """
-        Check if a video file with the given name already exists in the output directory.
-
-        Args:
-            output_file_name (str): The base name of the output file (without extension).
+        Extract the title of the video without downloading it.
 
         Returns:
-            bool: True if the file already exists, False otherwise.
+            str: The video title, or 'Unknown' if extraction fails.
         """
-        output_path: Path = self.output_dir_path / f"{output_file_name}.mp4"
+        try:
+            with YoutubeDL(self.ydl_opts) as ydl:  # type: ignore
+                info = ydl.extract_info(url=self.url, download=False)
 
-        if output_path.exists():
-            logger.info(f'⏩ Video already downloaded: "{output_path.name}"')
-            return True
+                if info is None:
+                    logger.error(
+                        f"Failed to extract video information for URL: {self.url}. "
+                        "Video may be private or unavailable."
+                    )
 
-        return False
+                    return "Unknown"
 
-    def _download_using_yt_dlp(
-        self,
-        output_file_name: str,
-    ) -> None:
+                video_title = info.get("title", "Unknown")
+
+                return video_title
+
+        except Exception as e:
+            logger.error(f"Error extracting video title for URL {self.url}: {e}")
+            return "Unknown"
+
+    def download_video(self, output_file_name: str) -> None:
         """
-        Download the YouTube video using yt-dlp.
+        Download the YouTube video to the specified output directory.
 
         Args:
-            output_file_name (str): The base name of the output file (without extension).
-
-        Logs success or failure of the download operation.
+            output_file_name (str): Name of the output file (without path).
         """
-        ydl_opts = {
-            "outtmpl": str(self.output_dir_path / f"{output_file_name}.%(ext)s"),
-            "format": YT_DLP_DOWNLOAD_FORMAT,
-            "merge_output_format": self.output_file_extension,
-            "quiet": True,
+        output_file_path = self.output_dir_path / output_file_name
+
+        self.ydl_opts["outtmpl"] = str(output_file_path)
+
+        self.ydl_opts["format"] += "+bestaudio/best"
+        self.ydl_opts["http_headers"] = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/135.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-us,en;q=0.5",
+            "Sec-Fetch-Mode": "navigate",
         }
+        self.ydl_opts["merge_output_format"] = "mp4"
+        self.ydl_opts["js_runtimes"] = {"deno": {}}
+        self.ydl_opts["remote_components"] = set()
+        self.ydl_opts["compat_opts"] = set()
+        self.ydl_opts["forceprint"] = {}
+        self.ydl_opts["print_to_file"] = {}
+
+        logger.info(f"Starting download: {self.url}")
+        logger.info(f"Saving to: {output_file_path}")
+
+        print(self.ydl_opts)
 
         try:
-            with YoutubeDL(ydl_opts) as youtube_dl:  # type: ignore
-                youtube_dl.download([self.url])
+            with YoutubeDL(self.ydl_opts) as ydl:  # type: ignore
+                ydl.extract_info(url=self.url, download=False)
+                ydl.download([self.url])
 
-            logger.info(
-                f'✅ Download finished for video: "{self.video_title}" ({self.url})'  # type: ignore
-            )
-            logger.info(
-                f"✅ Video saved to: {self.output_dir_path / (output_file_name + '.mp4')}"
-            )
-        except Exception as e:
-            logger.error(f"❌ Download failed for {self.url}: {e}")
-
-    def _download_using_pytube(self, output_file_name: str) -> None:
-        """
-        Download the YouTube video using pytube as an alternative to yt-dlp.
-
-        This method may succeed when yt-dlp fails due to rate-limits or request blocking.
-        Pytube fetches streams directly from YouTube without relying on external executables.
-
-        Args:
-            output_file_name (str): The base name of the output file (without extension).
-
-        Logs success or failure of the download operation.
-        """
-        try:
-            yt = YouTube(self.url)
-            stream = (
-                yt.streams.filter(progressive=True, file_extension="mp4")
-                .order_by("resolution")
-                .desc()
-                .first()
-            )
-
-            if not stream:
-                raise RuntimeError("No valid MP4 stream found for download.")
-
-            output_path = stream.download(
-                output_path=str(self.output_dir_path),
-                filename=f"{output_file_name}.mp4",
-            )
-
-            logger.info(
-                f'✅ Download (pytube) finished for video: "{self.video_title}" ({self.url})'
-            )
-            logger.info(f"✅ Video saved to: {output_path}")
+            logger.info(f"Download completed: {output_file_path}")
 
         except Exception as e:
-            logger.error(f"❌ Pytube download failed for {self.url}: {e}")
-
-    def download_videos(self, output_file_name: str) -> None:
-        """
-        Public method to download a YouTube video if it hasn't been downloaded yet.
-
-        Attempts yt-dlp first. If yt-dlp fails due to known issues, pytube
-        can be used as a fallback method.
-
-        Args:
-            output_file_name (str): The base name of the output file (without extension).
-
-        Checks if the video already exists and triggers the download if needed.
-        """
-        if not self._check_if_video_already_downloaded(
-            output_file_name=output_file_name
-        ):
-            logger.info(
-                f'✅ Starting download for video: "{self.video_title}" ({self.url})'
-            )
-
-            self._download_using_yt_dlp(output_file_name=output_file_name)
-            logger.warning("⚠️ yt-dlp failed — falling back to pytube...")
-            self._download_using_pytube(output_file_name=output_file_name)
+            logger.error(f"Failed to download video {self.url}: {e}")

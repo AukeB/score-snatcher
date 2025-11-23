@@ -15,6 +15,7 @@ def main() -> None:
     song_config = config_manager.load_song_csv()
 
     url = "https://www.youtube.com/watch?v=MciqL-IJY5I"
+    # url = "https://www.youtube.com/watch?v=baDIFo45vE8&list=RDbaDIFo45vE8"
 
     for song in song_config:
         # url = song.url
