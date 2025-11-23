@@ -73,7 +73,7 @@ class ConfigManager:
         self.song_config_path = song_config_path
 
     def load_config_file(self) -> ConfigModel:
-        """Loads the main YAML configuration file and returns it as a ConfigModel.
+        """Loads the main YAML configuratioreturnsn file and returns it as a ConfigModel.
 
         Returns:
             ConfigModel: The loaded configuration as a Pydantic model.

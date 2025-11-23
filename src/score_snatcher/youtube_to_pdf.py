@@ -12,7 +12,6 @@ from src.score_snatcher.constants import (
     OUTPUT_DIR_PDFS_REL_PATH,
 )
 from src.score_snatcher.youtube_downloader import YoutubeDownloader
-from src.score_snatcher.video_to_screenshots import VideoToScreenshots
 
 
 logger = logging.getLogger(__name__)
@@ -82,17 +81,21 @@ class YoutubeToPDF:
         """Run the full workflow."""
 
         # Step 1. Download the youtube video.
-        self.youtube_downloader.download_video(
-            output_file_name=self.formatted_video_name
+        # self.youtube_downloader.download_video(
+        #     output_file_name=self.formatted_video_name
+        # )
+
+        self.youtube_downloader.download_all_videos_from_channel(
+            channel_name="https://www.youtube.com/c/JérémyFloury"
         )
 
         # Step 2. Extract screenshots from video every x amount of seconds.
-        video_to_screenshots = VideoToScreenshots(
-            root_dir_path=self.screenshots_dir,
-            output_dir_name=self.formatted_video_name,
-        )
+        # video_to_screenshots = VideoToScreenshots(
+        #     root_dir_path=self.screenshots_dir,
+        #     output_dir_name=self.formatted_video_name,
+        # )
 
-        video_to_screenshots.extract_screenshots_from_video()
+        # video_to_screenshots.extract_screenshots_from_video()
 
         # Step 3. Remove duplicate screenshots.
         # to implement
