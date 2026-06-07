@@ -15,8 +15,7 @@ class YoutubeDownloader:
     """Class containing functions for downloading videos from YouTube."""
 
     def __init__(self, output_dir_path: Path, url: str) -> None:
-        """
-        Initialize the YoutubeDownloader with a URL and output directory.
+        """Initialize the YoutubeDownloader with a URL and output directory.
 
         Args:
             output_dir_path (Path): Path to the directory where the video will be saved.
@@ -34,8 +33,7 @@ class YoutubeDownloader:
         self.video_title = self._obtain_video_title()
 
     def _construct_ydl_opts_dict(self) -> dict:
-        """
-        Construct the dictionary of options for yt-dlp based on the configuration.
+        """Construct the dictionary of options for yt-dlp based on the configuration.
 
         Returns:
             dict: yt-dlp options dictionary.
@@ -66,8 +64,7 @@ class YoutubeDownloader:
         return ydl_opts
 
     def _obtain_video_title(self) -> str | None:
-        """
-        Extract the title of the video without downloading it.
+        """Extract the title of the video without downloading it.
 
         Returns:
             str: The video title, or 'Unknown' if extraction fails.
@@ -93,8 +90,7 @@ class YoutubeDownloader:
             return "Unknown"
 
     def download_video(self, output_file_name: str) -> None:
-        """
-        Download the YouTube video to the specified output directory.
+        """Download the YouTube video to the specified output directory.
 
         Args:
             output_file_name (str): Name of the output file (without path).
@@ -115,8 +111,8 @@ class YoutubeDownloader:
             logger.error(f"Failed to download video {self.url}: {e}")
 
     def download_all_videos_from_channel(self, channel_name: str) -> None:
-        """
-        Download all videos from a YouTube channel using the existing download_video method.
+        """Download all videos from a YouTube channel using the existing download_video
+        method.
 
         Args:
             channel_name (str): Channel handle or channel URL.

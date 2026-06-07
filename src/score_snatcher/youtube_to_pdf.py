@@ -1,4 +1,4 @@
-""" """
+""""""
 
 import re
 import logging
@@ -46,8 +46,7 @@ class YoutubeToPDF:
 
     @staticmethod
     def _format_video_name(video_name: str, max_length: int = 100) -> str:
-        """
-        Format a YouTube video title to be safe for file systems.
+        """Format a YouTube video title to be safe for file systems.
 
         - Normalizes unicode to ASCII
         - Converts to lowercase

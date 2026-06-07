@@ -14,12 +14,17 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "mypy>=1.18.2",
+    "docstring-tailor>=0.2.0",
+    "mypy>=2.1.0",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.1",
 ]
 
+[tool.docstring_tailor]
+line-length = 88
+style = "google"
+detect-lists = true
 
 [[tool.mypy.overrides]]
 module = ["yaml.*"]

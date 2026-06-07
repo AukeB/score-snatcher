@@ -64,16 +64,17 @@ class ConfigManager:
         """Initializes the ConfigManager with paths to the configuration files.
 
         Args:
-            config_path (Path, optional): Path to the YAML configuration file.
-                Defaults to CONFIG_PATH.
-            song_config_path (Path, optional): Path to the CSV file containing
-                song entries. Defaults to SONG_CONFIG_PATH.
+            config_path (Path, optional): Path to the YAML configuration file. Defaults
+                to CONFIG_PATH.
+            song_config_path (Path, optional): Path to the CSV file containing song
+                entries. Defaults to SONG_CONFIG_PATH.
         """
         self.config_path = config_path
         self.song_config_path = song_config_path
 
     def load_config_file(self) -> ConfigModel:
-        """Loads the main YAML configuratioreturnsn file and returns it as a ConfigModel.
+        """Loads the main YAML configuratioreturnsn file and returns it as a
+        ConfigModel.
 
         Returns:
             ConfigModel: The loaded configuration as a Pydantic model.
