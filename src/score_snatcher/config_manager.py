@@ -1,103 +1,80 @@
-"""Module for loading the configuration files."""
+"""Module for loading the score-snatcher configuration files."""
 
 import csv
-import yaml
 import logging
-
-from typing import Literal
 from pathlib import Path
-from pydantic import BaseModel, ConfigDict, ValidationError
 
-from src.score_snatcher.constants import CONFIG_PATH, SONG_CONFIG_PATH
+import yaml
+from pydantic import ValidationError
 
+from score_snatcher.config_model import ConfigModel, SongEntry
+from score_snatcher.constants import CONFIG_PATH, SONG_CONFIG_PATH
 
 logger = logging.getLogger(__name__)
 
 
-class ConfiguredBaseModel(BaseModel):
-    """BaseModel class that forbids extra arguments."""
-
-    model_config = ConfigDict(extra="forbid")
-
-
-class SongEntry(ConfiguredBaseModel):
-    """BaseModel class for the song CSV configuration."""
-
-    generate: Literal["TRUE", "FALSE"]
-    song: str
-    composer: str
-    performer: str
-    transcriber: str
-    url: str
-
-
-class ConfigModel(ConfiguredBaseModel):
-    """Main configuration model combining all project parameters."""
-
-    class YoutubeDownloaderConfig(ConfiguredBaseModel):
-        """Configuration for YouTube video downloader."""
-
-        output_file_extension: str
-        video_quality: str
-        ignore_errors: bool
-        no_warnings: bool
-        extract_flat: bool
-        write_subtitles: bool
-        write_thumbnail: bool
-        write_automatic_sub: bool
-        post_processors_key: str
-        keep_video: bool
-        clean_info_json: bool
-        retries: int
-        fragment_retries: int
-        no_playlist: bool
-
-    youtube_downloader: YoutubeDownloaderConfig
-
-
 class ConfigManager:
-    """Utility class for loading project configuration settings."""
+    """Load the YAML settings and the song CSV file.
+
+    Attributes:
+        config_path (Path): Path to the YAML configuration file.
+        song_config_path (Path): Path to the CSV file with the song entries.
+
+    Example:
+        >>> config_manager = ConfigManager()
+        >>> config = config_manager.load_config_file()
+        >>> songs = config_manager.load_song_csv()
+    """
 
     def __init__(
-        self, config_path: Path = CONFIG_PATH, song_config_path: Path = SONG_CONFIG_PATH
+        self,
+        config_path: Path = CONFIG_PATH,
+        song_config_path: Path = SONG_CONFIG_PATH,
     ) -> None:
-        """Initializes the ConfigManager with paths to the configuration files.
+        """Store the paths to the configuration files.
 
         Args:
-            config_path (Path, optional): Path to the YAML configuration file. Defaults
-                to CONFIG_PATH.
-            song_config_path (Path, optional): Path to the CSV file containing song
-                entries. Defaults to SONG_CONFIG_PATH.
+            config_path (Path): Path to the YAML configuration file.
+            song_config_path (Path): Path to the CSV file with the song entries.
         """
+
         self.config_path = config_path
         self.song_config_path = song_config_path
 
     def load_config_file(self) -> ConfigModel:
-        """Loads the main YAML configuratioreturnsn file and returns it as a
-        ConfigModel.
+        """Read the YAML configuration file and validate it.
 
         Returns:
-            ConfigModel: The loaded configuration as a Pydantic model.
+            config (ConfigModel): The validated configuration.
         """
-        with open(self.config_path, "r", encoding="utf-8") as file:
-            config_dict = yaml.safe_load(file)
-        return ConfigModel(**config_dict)
+
+        with open(self.config_path, encoding="utf-8") as file:
+            raw_config = yaml.safe_load(file)
+
+        config = ConfigModel.model_validate(raw_config)
+
+        return config
 
     def load_song_csv(self) -> list[SongEntry]:
-        """Loads the song CSV file and returns a list of validated SongEntry objects.
+        """Read the song CSV file and validate every row.
 
-        Rows that fail validation are skipped, and a message is printed for each.
+        Rows that fail validation are logged and skipped.
 
         Returns:
-            list[SongEntry]: A list of valid song entries from the CSV file.
+            entries (list[SongEntry]): The valid song entries, in file order.
         """
+
+        entries: list[SongEntry] = []
+
         with open(self.song_config_path, newline="", encoding="utf-8") as file:
             reader = csv.DictReader(file)
-            entries = []
+
             for row in reader:
                 try:
-                    entry = SongEntry(**row)  # type: ignore
+                    entry = SongEntry.model_validate(row)
                     entries.append(entry)
-                except ValidationError as e:
-                    logger.error(f"Skipping invalid row: {row}\nError: {e}")
+
+                except ValidationError as error:
+                    logger.error(f"Skipping invalid row: {row}\nError: {error}")
+
         return entries

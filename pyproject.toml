@@ -5,17 +5,25 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "logging>=0.4.9.6",
     "pydantic>=2.12.3",
-    "pytube>=15.0.0",
     "pyyaml>=6.0.3",
     "yt-dlp==2025.11.12",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/score_snatcher"]
+
+[tool.deptry]
+known_first_party = ["score_snatcher"]
+
 [dependency-groups]
 dev = [
+    "deptry>=0.25.1",
     "docstring-tailor>=0.4.1",
-    "mypy>=2.1.0",
     "pyright>=1.1.414",
     "pytest>=8.4.2",
     "pytest-cov>=7.1.0",
@@ -28,12 +36,17 @@ line-length = 88
 style = "google"
 detect-lists = true
 
-[[tool.mypy.overrides]]
-module = ["yaml.*"]
-follow_untyped_imports = true
-
 [tool.pytest.ini_options]
 pythonpath = ["."]
 
+[tool.ruff.lint]
+select = [
+    "I",    # isort-style import sorting
+    "ANN",  # annotation rules
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["score_snatcher"]
+
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ANN"]  # tests are not held to annotation rules
+"tests/**" = ["ANN", "I001"]  # tests are not held to annotation rules; two blank lines separate imports from section comments

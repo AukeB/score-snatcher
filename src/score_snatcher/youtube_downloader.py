@@ -1,46 +1,125 @@
-"""Module for downloading videos from YouTube using yt-dlp."""
+"""Module for downloading videos from YouTube with yt-dlp."""
 
 import logging
+from pathlib import Path
+from typing import Any
 
 from yt_dlp import YoutubeDL
-from pathlib import Path
 
-from src.score_snatcher.config_manager import ConfigManager
-
+from score_snatcher.config_manager import ConfigManager
+from score_snatcher.config_model import ConfigModel
 
 logger = logging.getLogger(__name__)
 
+_UNKNOWN_TITLE = "Unknown"
+
 
 class YoutubeDownloader:
-    """Class containing functions for downloading videos from YouTube."""
+    """Download YouTube videos, and read their titles, with the settings from
+    config.yaml.
+
+    Attributes:
+        output_dir_path (Path): Folder the videos are saved to.
+        url (str): The URL of the video to work with.
+        config_youtube_download (ConfigModel.YoutubeDownloaderConfig): The download
+            settings.
+        ydl_opts (dict[str, Any]): The options passed to yt-dlp.
+        video_title (str): The title of the video, or "Unknown" if it cannot be read.
+
+    Example:
+        >>> downloader = YoutubeDownloader(output_dir_path=Path("data/videos"), url=url)
+        >>> downloader.download_video(output_file_name="my_video")
+    """
 
     def __init__(self, output_dir_path: Path, url: str) -> None:
-        """Initialize the YoutubeDownloader with a URL and output directory.
+        """Load the download settings and read the video title.
 
         Args:
-            output_dir_path (Path): Path to the directory where the video will be saved.
-            url (str): The URL of the YouTube video to download.
+            output_dir_path (Path): Folder the videos are saved to.
+            url (str): The URL of the video to work with.
         """
+
         self.output_dir_path = output_dir_path
         self.url = url
 
-        # Load Youtube download settings from the config file.
-        config_manager = ConfigManager()
-        config = config_manager.load_config_file()
+        config = ConfigManager().load_config_file()
         self.config_youtube_download = config.youtube_downloader
 
-        self.ydl_opts: dict = self._construct_ydl_opts_dict()
+        self.ydl_opts = self._construct_ydl_opts_dict()
         self.video_title = self._obtain_video_title()
 
-    def _construct_ydl_opts_dict(self) -> dict:
-        """Construct the dictionary of options for yt-dlp based on the configuration.
+    @staticmethod
+    def _channel_name_to_url(channel_name: str) -> str:
+        """Turn a channel handle, ID, URL or legacy name into a channel URL.
+
+        Args:
+            channel_name (str): The channel identifier to convert.
 
         Returns:
-            dict: yt-dlp options dictionary.
+            channel_url (str): The URL of the channel.
         """
+
+        if channel_name.startswith("@"):
+            channel_url = f"https://www.youtube.com/{channel_name}"
+        elif channel_name.startswith("UC"):
+            channel_url = f"https://www.youtube.com/channel/{channel_name}"
+        elif channel_name.startswith("http"):
+            channel_url = channel_name
+        else:
+            channel_url = f"https://www.youtube.com/c/{channel_name}"
+
+        return channel_url
+
+    @staticmethod
+    def _to_watch_url(video_url: str) -> str:
+        """Turn a bare video ID into a watch URL, leaving full URLs unchanged.
+
+        Args:
+            video_url (str): A full URL or a bare video ID.
+
+        Returns:
+            watch_url (str): The full watch URL.
+        """
+
+        if video_url.startswith("http"):
+            watch_url = video_url
+        else:
+            watch_url = f"https://www.youtube.com/watch?v={video_url}"
+
+        return watch_url
+
+    @staticmethod
+    def _make_safe_title(video_title: str) -> str:
+        """Keep only letters, digits and a few punctuation marks from a title.
+
+        Args:
+            video_title (str): The raw video title.
+
+        Returns:
+            safe_title (str): The title without characters that are unsafe in file
+                names.
+        """
+
+        kept_characters = [c for c in video_title if c.isalnum() or c in " _-.()"]
+        safe_title = "".join(kept_characters).strip()
+
+        return safe_title
+
+    def _construct_ydl_opts_dict(self) -> dict[str, Any]:
+        """Translate the download settings into yt-dlp options.
+
+        Returns:
+            ydl_opts (dict[str, Any]): The options for yt-dlp.
+        """
+
         cfg = self.config_youtube_download
 
-        ydl_opts = {
+        postprocessor = {
+            "key": cfg.post_processors_key,
+            "preferedformat": cfg.output_file_extension,
+        }
+
+        ydl_opts: dict[str, Any] = {
             "format": cfg.video_quality,
             "ignoreerrors": cfg.ignore_errors,
             "no_warnings": cfg.no_warnings,
@@ -48,12 +127,7 @@ class YoutubeDownloader:
             "writesubtitles": cfg.write_subtitles,
             "writethumbnail": cfg.write_thumbnail,
             "writeautomaticsub": cfg.write_automatic_sub,
-            "postprocessors": [
-                {
-                    "key": cfg.post_processors_key,
-                    "preferedformat": cfg.output_file_extension,
-                }
-            ],
+            "postprocessors": [postprocessor],
             "keepvideo": cfg.keep_video,
             "clean_infojson": cfg.clean_info_json,
             "retries": cfg.retries,
@@ -63,99 +137,101 @@ class YoutubeDownloader:
 
         return ydl_opts
 
-    def _obtain_video_title(self) -> str | None:
-        """Extract the title of the video without downloading it.
+    def _obtain_video_title(self) -> str:
+        """Read the title of the video without downloading it.
 
         Returns:
-            str: The video title, or 'Unknown' if extraction fails.
+            video_title (str): The title, or "Unknown" if it cannot be read.
         """
+
         try:
-            with YoutubeDL(self.ydl_opts) as ydl:  # type: ignore
+            with YoutubeDL(self.ydl_opts) as ydl:  # pyright: ignore[reportArgumentType]
                 info = ydl.extract_info(url=self.url, download=False)
 
-                if info is None:
-                    logger.error(
-                        f"Failed to extract video information for URL: {self.url}. "
-                        "Video may be private or unavailable."
-                    )
+            if info is None:
+                logger.error(
+                    f"Failed to extract video information for URL: {self.url}. "
+                    "Video may be private or unavailable."
+                )
 
-                    return "Unknown"
+                return _UNKNOWN_TITLE
 
-                video_title = info.get("title", "Unknown")
+            raw_title = info.get("title")
+            video_title = raw_title if isinstance(raw_title, str) else _UNKNOWN_TITLE
 
-                return video_title
+            return video_title
 
-        except Exception as e:
-            logger.error(f"Error extracting video title for URL {self.url}: {e}")
-            return "Unknown"
+        except Exception as error:
+            logger.error(f"Error extracting video title for URL {self.url}: {error}")
+
+            return _UNKNOWN_TITLE
 
     def download_video(self, output_file_name: str) -> None:
-        """Download the YouTube video to the specified output directory.
+        """Download the video into the output folder.
 
         Args:
-            output_file_name (str): Name of the output file (without path).
+            output_file_name (str): File name without folder or extension.
         """
+
         output_file_path = self.output_dir_path / output_file_name
-        self.ydl_opts["outtmpl"] = str(output_file_path) + ".%(ext)s"
+        output_template = f"{output_file_path}.%(ext)s"
+        self.ydl_opts["outtmpl"] = output_template
 
         logger.info(f"Starting download: {self.url}")
         logger.info(f"Saving to: {output_file_path}")
 
         try:
-            with YoutubeDL(self.ydl_opts) as ydl:  # type: ignore
+            with YoutubeDL(self.ydl_opts) as ydl:  # pyright: ignore[reportArgumentType]
                 ydl.download([self.url])
 
             logger.info(f"Download completed: {output_file_path}")
 
-        except Exception as e:
-            logger.error(f"Failed to download video {self.url}: {e}")
+        except Exception as error:
+            logger.error(f"Failed to download video {self.url}: {error}")
 
     def download_all_videos_from_channel(self, channel_name: str) -> None:
-        """Download all videos from a YouTube channel using the existing download_video
-        method.
+        """List a channel's videos and update the URL and title for each one.
+
+        Work in progress: the per-video download call is still commented out, so no
+        video is downloaded yet.
 
         Args:
-            channel_name (str): Channel handle or channel URL.
+            channel_name (str): Channel handle, channel ID, URL, or legacy channel name.
         """
-        if channel_name.startswith("@"):
-            channel_url = f"https://www.youtube.com/{channel_name}"
-        elif channel_name.startswith("UC"):  # raw channel ID
-            channel_url = f"https://www.youtube.com/channel/{channel_name}"
-        elif channel_name.startswith("http"):
-            channel_url = channel_name
-        else:
-            channel_url = f"https://www.youtube.com/c/{channel_name}"
+
+        channel_url = self._channel_name_to_url(channel_name=channel_name)
 
         logger.info(f"Fetching video list for channel: {channel_url}")
 
-        # yt-dlp options for listing videos without downloading
-        list_opts = {
+        list_opts: dict[str, Any] = {
             "quiet": True,
-            "extract_flat": True,  # Important — faster, gives list of uploads
+            "extract_flat": True,
             "skip_download": True,
             "ignoreerrors": True,
             "no_warnings": True,
-            "playlistend": 99999,  # Ensure we get all videos
+            "playlistend": 99999,
         }
 
         try:
-            with YoutubeDL(list_opts) as ydl:  # type: ignore
+            with YoutubeDL(list_opts) as ydl:  # pyright: ignore[reportArgumentType]
                 info = ydl.extract_info(channel_url, download=False)
 
             if info is None:
                 logger.error(f"Could not fetch channel info: {channel_url}")
+
                 return
 
-            # Info for channels or playlist-like objects is stored in "entries"
-            entries = info.get("entries", [])
+            raw_entries: Any = info.get("entries", [])
+            entries: list[Any] = list(raw_entries)
 
             if not entries:
                 logger.error(f"No videos found for channel: {channel_url}")
+
                 return
 
-            logger.info(f"Found {len(entries)} videos on channel.")
+            entry_count = len(entries)
+            logger.info(f"Found {entry_count} videos on channel.")
 
-            # Iterate through each entry and download individually
             for entry in entries:
                 video_url = entry.get("url")
 
@@ -163,29 +239,20 @@ class YoutubeDownloader:
                     logger.warning("Encountered entry without a URL; skipping.")
                     continue
 
-                full_video_url = (
-                    video_url
-                    if video_url.startswith("http")
-                    else f"https://www.youtube.com/watch?v={video_url}"
+                full_video_url = self._to_watch_url(video_url=video_url)
+                raw_title = entry.get("title")
+                video_title = (
+                    raw_title if isinstance(raw_title, str) else "UnknownTitle"
                 )
-
-                video_title = entry.get("title", "UnknownTitle")
-                print(video_title)
-                safe_title = "".join(
-                    c for c in video_title if c.isalnum() or c in " _-.()"
-                ).strip()
+                safe_title = self._make_safe_title(video_title=video_title)
 
                 logger.info(f"Downloading video: {safe_title}")
+                logger.debug(f"Video title: {video_title}")
 
-                # Use your existing method
-                # output_name = safe_title
-                self.url = full_video_url  # Update instance URL
-                self.video_title = safe_title  # Helpful for logging
-                # self.download_video(output_name)
+                self.url = full_video_url
+                self.video_title = safe_title
 
-            logger.info(
-                f"All videos from channel '{channel_name}' downloaded successfully."
-            )
+            logger.info(f"All videos from channel '{channel_name}' processed.")
 
-        except Exception as e:
-            logger.error(f"Error while downloading channel videos: {e}")
+        except Exception as error:
+            logger.error(f"Error while listing channel videos: {error}")

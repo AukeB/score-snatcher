@@ -1,38 +1,54 @@
-"""Module for managing screenshot directories in a video processing workflow."""
+"""Module for managing the screenshot folders of the video workflow."""
 
 from pathlib import Path
 
 
 class VideoToScreenshots:
-    """Class to manage screenshot directories for a video processing workflow."""
+    """Manage the screenshot folder for one video.
 
-    def __init__(
-        self,
-        root_dir_path: Path,
-        output_dir_name: str,
-    ) -> None:
-        """Initialize the VideoToScreenshots object.
+    Attributes:
+        root_dir_path (Path): Folder that holds the screenshot folders.
+        output_dir_name (str): Name of the screenshot folder for this video.
+
+    Example:
+        >>> screenshots = VideoToScreenshots(root_dir_path=Path("data/screenshots"),
+        ...                                  output_dir_name="my_video")
+        >>> screenshots.extract_screenshots_from_video()
+    """
+
+    def __init__(self, root_dir_path: Path, output_dir_name: str) -> None:
+        """Store where the screenshots of the video go.
 
         Args:
-            root_dir_path (Path): Path to the root directory where the output folder
-                should be located.
-            output_dir_name (str): Name of the folder to store screenshots.
+            root_dir_path (Path): Folder that holds the screenshot folders.
+            output_dir_name (str): Name of the screenshot folder for this video.
         """
+
         self.root_dir_path = root_dir_path
         self.output_dir_name = output_dir_name
 
     def _check_if_already_processed(self) -> bool:
-        """Check if the screenshots folder exists and is empty.
+        """Check whether the screenshot folder exists and is empty.
 
         Returns:
-            True if the folder exists and is empty, False otherwise.
+            is_empty_folder (bool): True if the folder exists and has no entries.
         """
-        folder_path: Path = self.root_dir_path / self.output_dir_name
-        return folder_path.exists() and not any(folder_path.iterdir())
 
-    def extract_screenshots_from_video(self) -> None:  # -> Optional[bool]:
-        """"""
-        pass
+        folder_path = self.root_dir_path / self.output_dir_name
+
+        if not folder_path.exists():
+            return False
+
+        entries = folder_path.iterdir()
+        has_entries = any(entries)
+
+        return not has_entries
+
+    def extract_screenshots_from_video(self) -> None:
+        """Extract the screenshots from the video.
+
+        Work in progress: not implemented yet.
+        """
 
         # if self._check_if_already_processed():
-        #     return False
+        #     return
