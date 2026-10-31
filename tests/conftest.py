@@ -56,7 +56,7 @@ class _FakeYoutubeDL:
     Attributes:
         info (dict[str, Any] | None): The information returned by extract_info.
         options (dict[str, Any]): The options the instance was created with.
-        downloaded (list[str]): The URLs passed to download.
+        downloaded (list[dict[str, Any]]): The information passed to process_ie_result.
     """
 
     info: dict[str, Any] | None = None
@@ -69,7 +69,7 @@ class _FakeYoutubeDL:
         """
 
         self.options = options
-        self.downloaded: list[str] = []
+        self.downloaded: list[dict[str, Any]] = []
 
     def __enter__(self) -> "_FakeYoutubeDL":
         """Return the instance for use in a with-block.
@@ -99,14 +99,17 @@ class _FakeYoutubeDL:
 
         return _FakeYoutubeDL.info
 
-    def download(self, urls: list[str]) -> None:
-        """Record the URLs that would have been downloaded.
+    def process_ie_result(
+        self, ie_result: dict[str, Any], download: bool = True
+    ) -> None:
+        """Record the information that would have been downloaded.
 
         Args:
-            urls (list[str]): The URLs to download.
+            ie_result (dict[str, Any]): The video information to download.
+            download (bool): Unused.
         """
 
-        self.downloaded.extend(urls)
+        self.downloaded.append(ie_result)
 
 
 @pytest.fixture(name="fake_ytdl")

@@ -4,7 +4,7 @@ youtube_downloader:
   ignore_errors: False # If True, skips videos that cause errors instead of stopping the whole process.
   no_warnings: False # Suppresses warning messages.
   extract_flat: False # If False, downloads full video info instead of just URLs.
-  write_subtitles: False # If True, downlaods the subtitles as .vtt or .srt file.
+  write_subtitles: False # If True, downloads the subtitles as .vtt or .srt file.
   write_thumbnail: False # If True, saves the video thumbnail image.
   write_automatic_sub: False # If True, downloads auto-generated Youtube subtitles.
   post_processors_key: "FFmpegVideoConvertor" # Post-process the video with FFmpeg.

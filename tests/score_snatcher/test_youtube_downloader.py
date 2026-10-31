@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -10,18 +11,17 @@ from score_snatcher.youtube_downloader import YoutubeDownloader
 from tests.conftest import _FakeYoutubeDL
 
 
-def _make_downloader(output_dir: Path, url: str = "https://www.youtube.com/watch?v=abc") -> YoutubeDownloader:
+def _make_downloader(output_dir: Path) -> YoutubeDownloader:
     """Create a downloader with the default configuration.
 
     Args:
         output_dir (Path): Folder for the downloads.
-        url (str): The video URL to work with.
 
     Returns:
         downloader (YoutubeDownloader): The downloader.
     """
 
-    downloader = YoutubeDownloader(output_dir_path=output_dir, url=url)
+    downloader = YoutubeDownloader(output_dir_path=output_dir)
 
     return downloader
 
@@ -29,15 +29,22 @@ def _make_downloader(output_dir: Path, url: str = "https://www.youtube.com/watch
 # Testing the "__init__" method from the "YoutubeDownloader" class.
 
 
-def test_init_reads_the_video_title(
+def test_init_loads_the_download_settings(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
 ) -> None:
-    fake_ytdl.info = {"title": "Aint Misbehaving"}
-
     downloader = _make_downloader(output_dir=tmp_path)
 
-    assert downloader.video_title == "Aint Misbehaving"
     assert isinstance(downloader.config_youtube_download, ConfigModel.YoutubeDownloaderConfig)
+
+
+def test_init_creates_the_output_folder_when_missing(
+    tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
+) -> None:
+    output_dir = tmp_path / "videos"
+
+    _make_downloader(output_dir=output_dir)
+
+    assert output_dir.is_dir()
 
 
 # Testing the "_construct_ydl_opts_dict" method from the "YoutubeDownloader" class.
@@ -46,7 +53,6 @@ def test_init_reads_the_video_title(
 def test_construct_ydl_opts_maps_settings_to_yt_dlp_options(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
 ) -> None:
-    fake_ytdl.info = {"title": "x"}
     downloader = _make_downloader(output_dir=tmp_path)
 
     options = downloader._construct_ydl_opts_dict()
@@ -56,18 +62,30 @@ def test_construct_ydl_opts_maps_settings_to_yt_dlp_options(
     assert options["postprocessors"][0]["preferedformat"] == "mp4"
 
 
-# Testing the "_obtain_video_title" method from the "YoutubeDownloader" class.
+# Testing the "obtain_video_title" method from the "YoutubeDownloader" class.
+
+
+def test_obtain_video_title_returns_the_title(
+    tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
+) -> None:
+    fake_ytdl.info = {"title": "Aint Misbehaving"}
+    downloader = _make_downloader(output_dir=tmp_path)
+
+    video_title = downloader.obtain_video_title(url="https://www.youtube.com/watch?v=abc")
+
+    assert video_title == "Aint Misbehaving"
 
 
 def test_obtain_video_title_returns_unknown_when_no_info(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], caplog: pytest.LogCaptureFixture
 ) -> None:
     fake_ytdl.info = None
+    downloader = _make_downloader(output_dir=tmp_path)
 
     with caplog.at_level(logging.ERROR, logger="score_snatcher.youtube_downloader"):
-        downloader = _make_downloader(output_dir=tmp_path)
+        video_title = downloader.obtain_video_title(url="https://www.youtube.com/watch?v=abc")
 
-    assert downloader.video_title == "Unknown"
+    assert video_title == "Unknown"
     assert "Failed to extract video information" in caplog.text
 
 
@@ -75,46 +93,109 @@ def test_obtain_video_title_returns_unknown_when_title_is_missing(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
 ) -> None:
     fake_ytdl.info = {"id": "abc"}
-
     downloader = _make_downloader(output_dir=tmp_path)
 
-    assert downloader.video_title == "Unknown"
+    video_title = downloader.obtain_video_title(url="https://www.youtube.com/watch?v=abc")
+
+    assert video_title == "Unknown"
 
 
 def test_obtain_video_title_returns_unknown_when_title_is_not_text(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
 ) -> None:
     fake_ytdl.info = {"title": 42}
-
     downloader = _make_downloader(output_dir=tmp_path)
 
-    assert downloader.video_title == "Unknown"
+    video_title = downloader.obtain_video_title(url="https://www.youtube.com/watch?v=abc")
+
+    assert video_title == "Unknown"
 
 
 def test_obtain_video_title_logs_errors_from_yt_dlp(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], caplog: pytest.LogCaptureFixture
 ) -> None:
     fake_ytdl.info = {"raise": True}
+    downloader = _make_downloader(output_dir=tmp_path)
 
     with caplog.at_level(logging.ERROR, logger="score_snatcher.youtube_downloader"):
-        downloader = _make_downloader(output_dir=tmp_path)
+        video_title = downloader.obtain_video_title(url="https://www.youtube.com/watch?v=abc")
 
-    assert downloader.video_title == "Unknown"
+    assert video_title == "Unknown"
     assert "network down" in caplog.text
 
 
 # Testing the "download_video" method from the "YoutubeDownloader" class.
 
 
-def test_download_video_sets_the_output_template(
+def test_download_video_extracts_the_info_once_without_downloading(
+    tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    extracted: list[tuple[str, bool]] = []
+
+    def record_extract(
+        self: _FakeYoutubeDL, url: str, download: bool = True
+    ) -> dict[str, Any]:
+        extracted.append((url, download))
+
+        return {"title": "x"}
+
+    monkeypatch.setattr(fake_ytdl, "extract_info", record_extract)
+    downloader = _make_downloader(output_dir=tmp_path)
+
+    downloader.download_video(url="https://www.youtube.com/watch?v=abc")
+
+    assert extracted == [("https://www.youtube.com/watch?v=abc", False)]
+
+
+def test_download_video_names_the_file_after_the_safe_title(
+    tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloaded: list[dict[str, Any]] = []
+
+    def record_download(self: _FakeYoutubeDL, ie_result: dict[str, Any], download: bool = True) -> None:
+        downloaded.append(ie_result)
+
+    monkeypatch.setattr(fake_ytdl, "process_ie_result", record_download)
+    fake_ytdl.info = {"title": "Song: Part/1?"}
+    downloader = _make_downloader(output_dir=tmp_path)
+
+    downloader.download_video(url="https://www.youtube.com/watch?v=abc")
+
+    assert downloaded[0]["title"] == "Song Part1"
+
+
+def test_download_video_saves_into_the_output_folder(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
 ) -> None:
     fake_ytdl.info = {"title": "x"}
     downloader = _make_downloader(output_dir=tmp_path)
 
-    downloader.download_video(output_file_name="my_video")
+    downloader.download_video(url="https://www.youtube.com/watch?v=abc")
 
-    assert downloader.ydl_opts["outtmpl"] == f"{tmp_path / 'my_video'}.%(ext)s"
+    assert downloader.ydl_opts["outtmpl"] == "%(title)s.%(ext)s"
+    assert downloader.ydl_opts["paths"] == {"home": str(tmp_path)}
+
+
+def test_download_video_logs_when_no_info_is_returned(
+    tmp_path: Path,
+    fake_ytdl: type[_FakeYoutubeDL],
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    downloaded: list[dict[str, Any]] = []
+
+    def record_download(self: _FakeYoutubeDL, ie_result: dict[str, Any], download: bool = True) -> None:
+        downloaded.append(ie_result)
+
+    monkeypatch.setattr(fake_ytdl, "process_ie_result", record_download)
+    fake_ytdl.info = None
+    downloader = _make_downloader(output_dir=tmp_path)
+
+    with caplog.at_level(logging.ERROR, logger="score_snatcher.youtube_downloader"):
+        downloader.download_video(url="https://www.youtube.com/watch?v=abc")
+
+    assert downloaded == []
+    assert "Failed to extract video information" in caplog.text
 
 
 def test_download_video_logs_failures(
@@ -123,35 +204,17 @@ def test_download_video_logs_failures(
     caplog: pytest.LogCaptureFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    fake_ytdl.info = {"title": "x"}
-    downloader = _make_downloader(output_dir=tmp_path)
-
-    def failing_download(self: _FakeYoutubeDL, urls: list[str]) -> None:
+    def failing_download(self: _FakeYoutubeDL, ie_result: dict[str, Any], download: bool = True) -> None:
         raise RuntimeError("disk full")
 
-    monkeypatch.setattr(fake_ytdl, "download", failing_download)
-
-    with caplog.at_level(logging.ERROR, logger="score_snatcher.youtube_downloader"):
-        downloader.download_video(output_file_name="my_video")
-
-    assert "disk full" in caplog.text
-
-
-def test_download_video_calls_yt_dlp_with_the_url(
-    tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
-) -> None:
+    monkeypatch.setattr(fake_ytdl, "process_ie_result", failing_download)
     fake_ytdl.info = {"title": "x"}
     downloader = _make_downloader(output_dir=tmp_path)
-    recorded: list[str] = []
 
-    def record_download(self: _FakeYoutubeDL, urls: list[str]) -> None:
-        recorded.extend(urls)
+    with caplog.at_level(logging.ERROR, logger="score_snatcher.youtube_downloader"):
+        downloader.download_video(url="https://www.youtube.com/watch?v=abc")
 
-    fake_ytdl.download = record_download  # type: ignore[method-assign]
-
-    downloader.download_video(output_file_name="my_video")
-
-    assert recorded == ["https://www.youtube.com/watch?v=abc"]
+    assert "disk full" in caplog.text
 
 
 # Testing the "_channel_name_to_url" method from the "YoutubeDownloader" class.
@@ -195,10 +258,9 @@ def test_make_safe_title_removes_unsafe_characters() -> None:
 # Testing the "download_all_videos_from_channel" method from the "YoutubeDownloader" class.
 
 
-def test_download_all_videos_updates_url_and_title_for_each_entry(
-    tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL]
+def test_download_all_videos_processes_each_entry_with_a_url(
+    tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], caplog: pytest.LogCaptureFixture
 ) -> None:
-    fake_ytdl.info = {"title": "x"}
     downloader = _make_downloader(output_dir=tmp_path)
 
     fake_ytdl.info = {
@@ -210,16 +272,18 @@ def test_download_all_videos_updates_url_and_title_for_each_entry(
         ]
     }
 
-    downloader.download_all_videos_from_channel(channel_name="@handle")
+    with caplog.at_level(logging.INFO, logger="score_snatcher.youtube_downloader"):
+        downloader.download_all_videos_from_channel(channel_name="@handle")
 
-    assert downloader.url == "https://www.youtube.com/watch?v=ghi"
-    assert downloader.video_title == "UnknownTitle"
+    assert "Downloading video: First Song" in caplog.text
+    assert "Downloading video: Second" in caplog.text
+    assert "Downloading video: UnknownTitle" in caplog.text
+    assert "Downloading video: No url" not in caplog.text
 
 
 def test_download_all_videos_logs_when_channel_info_is_missing(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], caplog: pytest.LogCaptureFixture
 ) -> None:
-    fake_ytdl.info = {"title": "x"}
     downloader = _make_downloader(output_dir=tmp_path)
     fake_ytdl.info = None
 
@@ -232,7 +296,6 @@ def test_download_all_videos_logs_when_channel_info_is_missing(
 def test_download_all_videos_logs_when_channel_has_no_entries(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], caplog: pytest.LogCaptureFixture
 ) -> None:
-    fake_ytdl.info = {"title": "x"}
     downloader = _make_downloader(output_dir=tmp_path)
     fake_ytdl.info = {"entries": []}
 
@@ -245,7 +308,6 @@ def test_download_all_videos_logs_when_channel_has_no_entries(
 def test_download_all_videos_logs_errors_from_yt_dlp(
     tmp_path: Path, fake_ytdl: type[_FakeYoutubeDL], caplog: pytest.LogCaptureFixture
 ) -> None:
-    fake_ytdl.info = {"title": "x"}
     downloader = _make_downloader(output_dir=tmp_path)
     fake_ytdl.info = {"raise": True}
 

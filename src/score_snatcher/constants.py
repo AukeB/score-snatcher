@@ -8,6 +8,6 @@ PROJECT_ROOT = _PACKAGE_DIRECTORY.parents[1]
 CONFIG_PATH = _PACKAGE_DIRECTORY / "configs" / "config.yaml"
 SONG_CONFIG_PATH = _PACKAGE_DIRECTORY / "configs" / "song_config_test.csv"
 
-OUTPUT_DIR_VIDEOS_REL_PATH: str = "data/videos"
-OUTPUT_DIR_SCREENSHOTS_REL_PATH: str = "data/screenshots"
-OUTPUT_DIR_PDFS_REL_PATH: str = "data/pdfs"
+OUTPUT_DIR_VIDEOS: Path = PROJECT_ROOT / "data" / "videos"
+OUTPUT_DIR_SCREENSHOTS: Path = PROJECT_ROOT / "data" / "screenshots"
+OUTPUT_DIR_PDFS: Path = PROJECT_ROOT / "data" / "pdfs"

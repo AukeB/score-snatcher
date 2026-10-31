@@ -13,26 +13,27 @@ class _FakeDownloader:
     """Stand-in for YoutubeDownloader, with a fixed title and no network access.
 
     Attributes:
-        output_dir_path (Path): Folder for the downloads.
-        url (str): The video URL.
-        video_title (str): The fixed title.
         channel_calls (list[str]): Channels that were asked to be listed.
     """
 
     title = "Aint Misbehaving: Live!"
 
-    def __init__(self, output_dir_path: Path, url: str) -> None:
-        """Record the arguments, as the real downloader does.
+    def __init__(self) -> None:
+        """Start without any recorded calls."""
+
+        self.channel_calls: list[str] = []
+
+    def obtain_video_title(self, url: str) -> str:
+        """Return the fixed title, as the real downloader would for this URL.
 
         Args:
-            output_dir_path (Path): Folder for the downloads.
-            url (str): The video URL.
+            url (str): The video URL. Unused.
+
+        Returns:
+            video_title (str): The fixed title.
         """
 
-        self.output_dir_path = output_dir_path
-        self.url = url
-        self.video_title = _FakeDownloader.title
-        self.channel_calls: list[str] = []
+        return _FakeDownloader.title
 
     def download_all_videos_from_channel(self, channel_name: str) -> None:
         """Record the channel that would be listed.
@@ -56,6 +57,9 @@ def fixture_workflow(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Youtube
         workflow (YoutubeToPDF): The workflow, with data folders under tmp_path.
     """
 
+    monkeypatch.setattr(module, "OUTPUT_DIR_VIDEOS", tmp_path / "data" / "videos")
+    monkeypatch.setattr(module, "OUTPUT_DIR_SCREENSHOTS", tmp_path / "data" / "screenshots")
+    monkeypatch.setattr(module, "OUTPUT_DIR_PDFS", tmp_path / "data" / "pdfs")
     monkeypatch.setattr(module, "PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(module, "YoutubeDownloader", _FakeDownloader)
 
@@ -71,6 +75,34 @@ def test_init_creates_the_data_folders(workflow: YoutubeToPDF, tmp_path: Path) -
     assert (tmp_path / "data" / "videos").is_dir()
     assert (tmp_path / "data" / "screenshots").is_dir()
     assert (tmp_path / "data" / "pdfs").is_dir()
+
+
+def test_init_logs_when_it_creates_the_data_folders(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setattr(module, "OUTPUT_DIR_VIDEOS", tmp_path / "new" / "videos")
+    monkeypatch.setattr(module, "OUTPUT_DIR_SCREENSHOTS", tmp_path / "new" / "shots")
+    monkeypatch.setattr(module, "OUTPUT_DIR_PDFS", tmp_path / "new" / "pdfs")
+    monkeypatch.setattr(module, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(module, "YoutubeDownloader", _FakeDownloader)
+    caplog.set_level("INFO")
+
+    YoutubeToPDF(url="https://www.youtube.com/watch?v=abc")
+
+    assert "Data folders created" in caplog.text
+
+
+def test_init_does_not_log_when_the_data_folders_already_exist(
+    workflow: YoutubeToPDF,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    caplog.set_level("INFO")
+
+    YoutubeToPDF(url="https://www.youtube.com/watch?v=abc")
+
+    assert "Data folders created" not in caplog.text
 
 
 def test_init_formats_the_video_title(workflow: YoutubeToPDF) -> None:

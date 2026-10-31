@@ -6,9 +6,9 @@ import unicodedata
 from pathlib import Path
 
 from score_snatcher.constants import (
-    OUTPUT_DIR_PDFS_REL_PATH,
-    OUTPUT_DIR_SCREENSHOTS_REL_PATH,
-    OUTPUT_DIR_VIDEOS_REL_PATH,
+    OUTPUT_DIR_PDFS,
+    OUTPUT_DIR_SCREENSHOTS,
+    OUTPUT_DIR_VIDEOS,
     PROJECT_ROOT,
 )
 from score_snatcher.youtube_downloader import YoutubeDownloader
@@ -41,21 +41,17 @@ class YoutubeToPDF:
 
         self.url = url
 
-        self.videos_dir = PROJECT_ROOT / OUTPUT_DIR_VIDEOS_REL_PATH
-        self.screenshots_dir = PROJECT_ROOT / OUTPUT_DIR_SCREENSHOTS_REL_PATH
-        self.pdfs_dir = PROJECT_ROOT / OUTPUT_DIR_PDFS_REL_PATH
+        self.videos_dir = OUTPUT_DIR_VIDEOS
+        self.screenshots_dir = OUTPUT_DIR_SCREENSHOTS
+        self.pdfs_dir = OUTPUT_DIR_PDFS
 
         self.directories = [self.videos_dir, self.screenshots_dir, self.pdfs_dir]
         self._create_data_folders()
 
-        self.youtube_downloader = YoutubeDownloader(
-            output_dir_path=self.videos_dir,
-            url=self.url,
-        )
+        self.youtube_downloader = YoutubeDownloader()
 
-        self.formatted_video_name = self._format_video_name(
-            video_name=self.youtube_downloader.video_title,
-        )
+        video_title = self.youtube_downloader.obtain_video_title(url=self.url)
+        self.formatted_video_name = self._format_video_name(video_name=video_title)
 
     @staticmethod
     def _format_video_name(video_name: str, max_length: int = 100) -> str:
@@ -87,8 +83,15 @@ class YoutubeToPDF:
     def _create_data_folders(self) -> None:
         """Create the data folders, if they do not exist yet."""
 
-        for directory in self.directories:
-            directory.mkdir(parents=True, exist_ok=True)
+        missing_directories = [
+            directory for directory in self.directories if not directory.exists()
+        ]
+
+        if not missing_directories:
+            return
+
+        for directory in missing_directories:
+            directory.mkdir(parents=True)
 
         data_root = PROJECT_ROOT / "data"
         logger.info(f"✅ Data folders created at: {data_root}")
@@ -101,9 +104,7 @@ class YoutubeToPDF:
         """
 
         # Step 1. Download the youtube video.
-        # self.youtube_downloader.download_video(
-        #     output_file_name=self.formatted_video_name
-        # )
+        # self.youtube_downloader.download_video(url=self.url)
         self.youtube_downloader.download_all_videos_from_channel(
             channel_name="https://www.youtube.com/c/JérémyFloury",
         )
